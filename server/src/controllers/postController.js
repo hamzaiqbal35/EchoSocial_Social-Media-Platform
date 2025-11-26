@@ -50,23 +50,33 @@ exports.getPost = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         const { content } = req.body;
-        let image = '';
+        let mediaUrl = '';
+        let mediaType = '';
 
         if (req.file) {
-            image = `/uploads/${req.file.filename}`;
+            mediaUrl = `/uploads/${req.file.filename}`;
+            // Determine media type based on mimetype
+            if (req.file.mimetype.startsWith('video/')) {
+                mediaType = 'video';
+            } else {
+                mediaType = 'image';
+            }
         } else if (req.body.image) {
-            // Handle case where image might still be sent as base64 or url (optional fallback)
-            image = req.body.image;
+            // Handle legacy/base64 image
+            mediaUrl = req.body.image;
+            mediaType = 'image';
         }
 
-        if (!content && !image) {
-            return res.status(400).json({ message: 'Post content or image is required' });
+        if (!content && !mediaUrl) {
+            return res.status(400).json({ message: 'Post content or media is required' });
         }
 
         const post = await Post.create({
             author: req.user._id,
             content: content || '',
-            image: image
+            image: mediaType === 'image' ? mediaUrl : '', // Backward compatibility
+            mediaUrl,
+            mediaType
         });
 
         const populatedPost = await Post.findById(post._id)
@@ -95,10 +105,21 @@ exports.updatePost = async (req, res) => {
         }
 
         if (content !== undefined) post.content = content;
+
         if (req.file) {
-            post.image = `/uploads/${req.file.filename}`;
+            post.mediaUrl = `/uploads/${req.file.filename}`;
+            if (req.file.mimetype.startsWith('video/')) {
+                post.mediaType = 'video';
+                post.image = ''; // Clear legacy image field if video
+            } else {
+                post.mediaType = 'image';
+                post.image = post.mediaUrl; // Update legacy field
+            }
         } else if (image !== undefined) {
+            // If image is explicitly sent (e.g. clearing it or base64)
             post.image = image;
+            post.mediaUrl = image;
+            post.mediaType = image ? 'image' : '';
         }
 
         await post.save();

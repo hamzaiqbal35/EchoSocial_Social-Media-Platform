@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime, getImageUrl } from '../utils/helpers';
 import Avatar from './Avatar';
 import Modal from './Modal';
+import MediaViewer from './MediaViewer';
 
 const PostCard = ({ post: initialPost, onDelete }) => {
     const { user } = useAuth();
@@ -14,6 +15,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [commentText, setCommentText] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showFullScreen, setShowFullScreen] = useState(false);
 
     const isLiked = post.likes?.some(like =>
         typeof like === 'string' ? like === user?._id : like._id === user?._id
@@ -114,13 +116,33 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                 {/* Post Content */}
                 <p className="mb-4 whitespace-pre-wrap">{post.content}</p>
 
-                {/* Post Image */}
-                {post.image && (
-                    <img
-                        src={getImageUrl(post.image)}
-                        alt="Post"
-                        className="w-full rounded-lg mb-4 max-h-96 object-cover"
-                    />
+                {/* Post Media */}
+                {post.mediaUrl && (
+                    <div className="mb-4 cursor-pointer" onClick={() => setShowFullScreen(true)}>
+                        {post.mediaType === 'video' ? (
+                            <video
+                                src={getImageUrl(post.mediaUrl)}
+                                className="w-full rounded-lg max-h-96 object-cover"
+                            />
+                        ) : (
+                            <img
+                                src={getImageUrl(post.mediaUrl)}
+                                alt="Post"
+                                className="w-full rounded-lg max-h-96 object-cover"
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* Backward compatibility for old posts */}
+                {!post.mediaUrl && post.image && (
+                    <div className="mb-4 cursor-pointer" onClick={() => setShowFullScreen(true)}>
+                        <img
+                            src={getImageUrl(post.image)}
+                            alt="Post"
+                            className="w-full rounded-lg max-h-96 object-cover"
+                        />
+                    </div>
                 )}
 
                 {/* Post Stats */}
@@ -219,6 +241,13 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                     </button>
                 </div>
             </Modal>
+            {/* Full Screen Media Viewer */}
+            <MediaViewer
+                isOpen={showFullScreen}
+                onClose={() => setShowFullScreen(false)}
+                mediaUrl={post.mediaUrl ? getImageUrl(post.mediaUrl) : (post.image ? getImageUrl(post.image) : '')}
+                mediaType={post.mediaType || 'image'}
+            />
         </>
     );
 };
