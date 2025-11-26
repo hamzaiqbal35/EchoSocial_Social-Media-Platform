@@ -4,6 +4,9 @@ const postController = require('../controllers/postController');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
+// Search posts (public)
+router.get('/search', postController.searchPosts);
+
 // Get all posts (public)
 router.get('/', postController.getAllPosts);
 

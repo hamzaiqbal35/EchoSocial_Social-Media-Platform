@@ -171,3 +171,21 @@ exports.getFollowing = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Get suggested users
+exports.getSuggestedUsers = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user._id);
+
+        // Get users who are not the current user and not already followed
+        const users = await User.find({
+            _id: { $ne: req.user._id, $nin: currentUser.following }
+        })
+            .select('username avatar bio')
+            .limit(20);
+
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

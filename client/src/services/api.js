@@ -52,6 +52,7 @@ export const userAPI = {
     getFollowers: (id) => api.get(`/users/${id}/followers`),
     getFollowing: (id) => api.get(`/users/${id}/following`),
     searchUsers: (query) => api.get(`/users/search?query=${query}`),
+    getSuggestedUsers: () => api.get('/users/suggested'),
 };
 
 // Post API
@@ -69,6 +70,7 @@ export const postAPI = {
     unlikePost: (id) => api.delete(`/posts/${id}/like`),
     getUserPosts: (userId, page = 1, limit = 10) =>
         api.get(`/posts/user/${userId}?page=${page}&limit=${limit}`),
+    searchPosts: (query) => api.get(`/posts/search?query=${query}`),
 };
 
 // Comment API

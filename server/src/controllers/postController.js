@@ -251,3 +251,22 @@ exports.getUserPosts = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Search posts
+exports.searchPosts = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) return res.json([]);
+
+        const posts = await Post.find({
+            content: { $regex: query, $options: 'i' }
+        })
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .populate('author', 'username avatar');
+
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

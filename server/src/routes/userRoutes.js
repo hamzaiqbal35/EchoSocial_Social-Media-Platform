@@ -6,6 +6,9 @@ const auth = require('../middleware/auth');
 // Search users
 router.get('/search', userController.searchUsers);
 
+// Get suggested users (protected)
+router.get('/suggested', auth, userController.getSuggestedUsers);
+
 // Get user profile
 router.get('/:id', userController.getUserProfile);
 

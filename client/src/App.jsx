@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
+import People from './pages/People';
 
 function App() {
   return (
@@ -49,6 +50,17 @@ function App() {
                   <div className="min-h-screen bg-bg-primary">
                     <Navbar />
                     <Notifications />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/people"
+              element={
+                <ProtectedRoute>
+                  <div className="min-h-screen bg-bg-primary">
+                    <Navbar />
+                    <People />
                   </div>
                 </ProtectedRoute>
               }
