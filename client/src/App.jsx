@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import People from './pages/People';
+import Landing from './pages/Landing';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <NotificationProvider>
           <Routes>
             {/* Public Routes */}
+            <Route path="/welcome" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

@@ -17,7 +17,7 @@ const Modal = ({ isOpen, onClose, title, children, className = '' }) => {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-85 backdrop-blur-md animate-fade-in"
             onClick={onClose}
         >
             <div
