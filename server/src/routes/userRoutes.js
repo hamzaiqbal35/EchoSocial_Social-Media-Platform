@@ -23,4 +23,11 @@ router.delete('/:id/follow', auth, userController.unfollowUser);
 router.get('/:id/followers', userController.getFollowers);
 router.get('/:id/following', userController.getFollowing);
 
+// Block/unblock user (protected)
+router.post('/:id/block', auth, userController.blockUser);
+router.delete('/:id/block', auth, userController.unblockUser);
+
+// Report user or post (protected)
+router.post('/report', auth, userController.createReport);
+
 module.exports = router;

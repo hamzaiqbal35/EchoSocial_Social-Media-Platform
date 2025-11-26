@@ -10,6 +10,8 @@ import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import People from './pages/People';
 import Landing from './pages/Landing';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -65,6 +67,17 @@ function App() {
                     <People />
                   </div>
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <div className="min-h-screen bg-bg-primary">
+                    <Navbar />
+                    <AdminDashboard />
+                  </div>
+                </AdminRoute>
               }
             />
 

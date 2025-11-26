@@ -40,6 +40,27 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
+    blockedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    bannedUntil: {
+        type: Date,
+        default: null
+    },
+    bannedReason: {
+        type: String,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now

@@ -189,3 +189,76 @@ exports.getSuggestedUsers = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Block user
+exports.blockUser = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user._id);
+        const userToBlock = await User.findById(req.params.id);
+
+        if (!userToBlock) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (userToBlock._id.toString() === currentUser._id.toString()) {
+            return res.status(400).json({ message: 'You cannot block yourself' });
+        }
+
+        // Check if already blocked
+        if (currentUser.blockedUsers.includes(userToBlock._id)) {
+            return res.status(400).json({ message: 'User already blocked' });
+        }
+
+        currentUser.blockedUsers.push(userToBlock._id);
+        await currentUser.save();
+
+        res.json({ message: 'User blocked successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Unblock user
+exports.unblockUser = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user._id);
+
+        // Check if blocked
+        if (!currentUser.blockedUsers.includes(req.params.id)) {
+            return res.status(400).json({ message: 'User is not blocked' });
+        }
+
+        currentUser.blockedUsers = currentUser.blockedUsers.filter(
+            id => id.toString() !== req.params.id
+        );
+        await currentUser.save();
+
+        res.json({ message: 'User unblocked successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Create report
+exports.createReport = async (req, res) => {
+    try {
+        const { reportedUserId, reportedPostId, reason, description } = req.body;
+        const Report = require('../models/Report');
+
+        if (!reportedUserId && !reportedPostId) {
+            return res.status(400).json({ message: 'Must report either a user or a post' });
+        }
+
+        const report = await Report.create({
+            reporter: req.user._id,
+            reportedUser: reportedUserId || null,
+            reportedPost: reportedPostId || null,
+            reason,
+            description: description || ''
+        });
+
+        res.status(201).json({ message: 'Report submitted successfully', report });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

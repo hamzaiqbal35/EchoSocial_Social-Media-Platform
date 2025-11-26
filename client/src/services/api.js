@@ -53,6 +53,9 @@ export const userAPI = {
     getFollowing: (id) => api.get(`/users/${id}/following`),
     searchUsers: (query) => api.get(`/users/search?query=${query}`),
     getSuggestedUsers: () => api.get('/users/suggested'),
+    blockUser: (id) => api.post(`/users/${id}/block`),
+    unblockUser: (id) => api.delete(`/users/${id}/block`),
+    createReport: (data) => api.post('/users/report', data),
 };
 
 // Post API
@@ -93,4 +96,19 @@ export const notificationAPI = {
     markAllAsRead: () => api.put('/notifications/read-all'),
 };
 
+// Admin API
+export const adminAPI = {
+    getStats: () => api.get('/admin/stats'),
+    getAllUsers: (page = 1, limit = 20, search = '', filter = 'all') =>
+        api.get(`/admin/users?page=${page}&limit=${limit}&search=${search}&filter=${filter}`),
+    banUser: (id, data) => api.put(`/admin/users/${id}/ban`, data),
+    unbanUser: (id) => api.put(`/admin/users/${id}/unban`),
+    getAllPosts: (page = 1, limit = 20) => api.get(`/admin/posts?page=${page}&limit=${limit}`),
+    deletePost: (id) => api.delete(`/admin/posts/${id}`),
+    getReports: (page = 1, limit = 20, status = 'all') =>
+        api.get(`/admin/reports?page=${page}&limit=${limit}&status=${status}`),
+    resolveReport: (id, status) => api.put(`/admin/reports/${id}/resolve`, { status }),
+};
+
 export default api;
+
