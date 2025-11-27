@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
+import MediaViewer from '../components/MediaViewer';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -31,10 +32,27 @@ const AdminDashboard = () => {
     const [reportsPage, setReportsPage] = useState(1);
     const [reportsTotalPages, setReportsTotalPages] = useState(1);
     const [reportsStatus, setReportsStatus] = useState('pending');
+    const [debouncedUsersSearch, setDebouncedUsersSearch] = useState('');
+    const [mediaViewer, setMediaViewer] = useState({ isOpen: false, url: null, type: null });
+
+    const getMediaUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('/')) {
+            return `http://localhost:5000${url}`;
+        }
+        return url;
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedUsersSearch(usersSearch);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [usersSearch]);
 
     useEffect(() => {
         loadData();
-    }, [activeTab, usersPage, usersSearch, usersFilter, postsPage, reportsPage, reportsStatus]);
+    }, [activeTab, usersPage, debouncedUsersSearch, usersFilter, postsPage, reportsPage, reportsStatus]);
 
     const loadData = async () => {
         try {
@@ -128,14 +146,14 @@ const AdminDashboard = () => {
                 ))}
             </div>
 
-            {loading ? (
-                <div className="flex justify-center py-12">
-                    <LoadingSpinner size="lg" />
-                </div>
-            ) : (
-                <>
-                    {/* Overview Tab */}
-                    {activeTab === 'overview' && stats && (
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+                loading ? (
+                    <div className="flex justify-center py-12">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                ) : (
+                    stats && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <div className="card">
                                 <h3 className="text-text-muted text-sm font-medium mb-2">Total Users</h3>
@@ -154,48 +172,56 @@ const AdminDashboard = () => {
                                 <p className="text-3xl font-bold text-error">{stats.bannedUsers}</p>
                             </div>
                         </div>
-                    )}
+                    )
+                )
+            )}
 
-                    {/* Users Tab */}
-                    {activeTab === 'users' && (
-                        <div>
-                            <div className="card mb-6">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    {/* Search Input with Icon */}
-                                    <div className="relative flex-1">
-                                        <svg className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                        <input
-                                            type="text"
-                                            placeholder="Search by username..."
-                                            className="w-full bg-bg-secondary border border-border rounded-lg py-3 pl-12 pr-4 text-black placeholder-gray-500 focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none transition-all"
-                                            value={usersSearch}
-                                            onChange={(e) => setUsersSearch(e.target.value)}
-                                        />
-                                    </div>
-
-                                    {/* Filter Dropdown */}
-                                    <div className="relative sm:w-56">
-                                        <svg className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                        </svg>
-                                        <select
-                                            className="w-full bg-bg-secondary border border-border rounded-lg py-3 pl-12 pr-10 text-black appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none transition-all"
-                                            value={usersFilter}
-                                            onChange={(e) => setUsersFilter(e.target.value)}
-                                        >
-                                            <option value="all">All Users</option>
-                                            <option value="active">Active Only</option>
-                                            <option value="banned">Banned Only</option>
-                                        </select>
-                                        <svg className="w-5 h-5 text-black absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
+            {/* Users Tab */}
+            {activeTab === 'users' && (
+                <div>
+                    <div className="card mb-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            {/* Search Input with Icon */}
+                            <div className="relative flex-1">
+                                <svg className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="Search by username..."
+                                    className="w-full bg-bg-secondary border border-border rounded-lg py-3 pl-12 pr-4 text-black placeholder-gray-500 focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none transition-all"
+                                    value={usersSearch}
+                                    onChange={(e) => setUsersSearch(e.target.value)}
+                                />
                             </div>
 
+                            {/* Filter Dropdown */}
+                            <div className="relative sm:w-56">
+                                <svg className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                <select
+                                    className="w-full bg-bg-secondary border border-border rounded-lg py-3 pl-12 pr-10 text-black appearance-none cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none transition-all"
+                                    value={usersFilter}
+                                    onChange={(e) => setUsersFilter(e.target.value)}
+                                >
+                                    <option value="all">All Users</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="banned">Banned Only</option>
+                                </select>
+                                <svg className="w-5 h-5 text-black absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <LoadingSpinner size="lg" />
+                        </div>
+                    ) : (
+                        <>
                             <div className="card overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
@@ -213,7 +239,7 @@ const AdminDashboard = () => {
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         <img
-                                                            src={user.avatar || '/default-avatar.png'}
+                                                            src={getMediaUrl(user.avatar) || '/default-avatar.png'}
                                                             alt={user.username}
                                                             className="w-10 h-10 rounded-full"
                                                         />
@@ -283,182 +309,219 @@ const AdminDashboard = () => {
                                     </button>
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
+                </div>
+            )}
 
-                    {/* Posts Tab */}
-                    {activeTab === 'posts' && (
-                        <div>
-                            <div className="grid grid-cols-1 gap-6">
-                                {posts.map((post) => (
-                                    <div key={post._id} className="card">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={post.author?.avatar || '/default-avatar.png'}
-                                                    alt={post.author?.username}
-                                                    className="w-10 h-10 rounded-full"
-                                                />
-                                                <div>
-                                                    <p className="font-medium">{post.author?.username}</p>
-                                                    <p className="text-sm text-text-muted">
-                                                        {new Date(post.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                </div>
+            {/* Posts Tab */}
+            {activeTab === 'posts' && (
+                loading ? (
+                    <div className="flex justify-center py-12">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                ) : (
+                    <div>
+                        <div className="grid grid-cols-1 gap-6">
+                            {posts.map((post) => (
+                                <div key={post._id} className="card">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <img
+                                                src={getMediaUrl(post.author?.avatar) || '/default-avatar.png'}
+                                                alt={post.author?.username}
+                                                className="w-10 h-10 rounded-full"
+                                            />
+                                            <div>
+                                                <p className="font-medium">{post.author?.username}</p>
+                                                <p className="text-sm text-text-muted">
+                                                    {new Date(post.createdAt).toLocaleDateString()}
+                                                </p>
                                             </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeletePost(post._id)}
+                                            className="text-error hover:underline text-sm"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <p className="mb-4">{post.content}</p>
+                                    {(() => {
+                                        const mediaUrl = post.mediaUrl || post.image;
+                                        const isVideo = post.mediaType === 'video' || (mediaUrl && mediaUrl.match(/\.(mp4|webm|ogg)$/i));
+
+                                        if (!mediaUrl) return null;
+
+                                        return (
+                                            <div className="relative group">
+                                                {isVideo ? (
+                                                    <div className="relative">
+                                                        <video
+                                                            controls
+                                                            className="w-full rounded-lg max-h-96 bg-black"
+                                                            preload="metadata"
+                                                        >
+                                                            <source src={getMediaUrl(mediaUrl)} type="video/mp4" />
+                                                            <source src={getMediaUrl(mediaUrl)} type="video/webm" />
+                                                            <source src={getMediaUrl(mediaUrl)} type="video/ogg" />
+                                                            Your browser does not support the video tag.
+                                                        </video>
+                                                        <button
+                                                            onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(mediaUrl), type: 'video' })}
+                                                            className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                                            title="View Fullscreen"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative cursor-pointer" onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(mediaUrl), type: 'image' })}>
+                                                        <img
+                                                            src={getMediaUrl(mediaUrl)}
+                                                            alt="Post"
+                                                            className="w-full rounded-lg max-h-96 object-cover hover:opacity-95 transition-opacity"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                                                            <span className="text-white bg-black/50 px-3 py-1 rounded-full text-sm">View Fullscreen</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {postsTotalPages > 1 && (
+                            <div className="flex justify-center gap-2 mt-6">
+                                <button
+                                    onClick={() => setPostsPage(p => Math.max(1, p - 1))}
+                                    disabled={postsPage === 1}
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    Previous
+                                </button>
+                                <span className="flex items-center px-4">
+                                    Page {postsPage} of {postsTotalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPostsPage(p => Math.min(postsTotalPages, p + 1))}
+                                    disabled={postsPage === postsTotalPages}
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )
+            )}
+
+            {/* Reports Tab */}
+            {activeTab === 'reports' && (
+                loading ? (
+                    <div className="flex justify-center py-12">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                ) : (
+                    <div>
+                        <div className="mb-6">
+                            <select
+                                className="input"
+                                value={reportsStatus}
+                                onChange={(e) => setReportsStatus(e.target.value)}
+                            >
+                                <option value="all">All Reports</option>
+                                <option value="pending">Pending</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="dismissed">Dismissed</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-4">
+                            {reports.map((report) => (
+                                <div key={report._id} className="card">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p className="font-medium">
+                                                Report by {report.reporter?.username}
+                                            </p>
+                                            <p className="text-sm text-text-muted">
+                                                {new Date(report.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <span className={`px-2 py-1 rounded text-xs font-medium ${report.status === 'pending' ? 'bg-error/20 text-error' :
+                                            report.status === 'resolved' ? 'bg-green-500/20 text-green-500' :
+                                                'bg-bg-secondary'
+                                            }`}>
+                                            {report.status}
+                                        </span>
+                                    </div>
+                                    <p className="mb-2">
+                                        <span className="font-medium">Reason:</span> {report.reason}
+                                    </p>
+                                    {report.description && (
+                                        <p className="mb-2 text-text-secondary">{report.description}</p>
+                                    )}
+                                    {report.reportedUser && (
+                                        <p className="mb-2">
+                                            <span className="font-medium">Reported User:</span> {report.reportedUser.username}
+                                        </p>
+                                    )}
+                                    {report.reportedPost && (
+                                        <p className="mb-4 text-text-secondary">
+                                            <span className="font-medium">Reported Post:</span> {report.reportedPost.content?.substring(0, 100)}...
+                                        </p>
+                                    )}
+                                    {report.status === 'pending' && (
+                                        <div className="flex gap-2">
                                             <button
-                                                onClick={() => handleDeletePost(post._id)}
-                                                className="text-error hover:underline text-sm"
+                                                onClick={() => handleResolveReport(report._id, 'resolved')}
+                                                className="btn btn-primary btn-sm"
                                             >
-                                                Delete
+                                                Resolve
+                                            </button>
+                                            <button
+                                                onClick={() => handleResolveReport(report._id, 'dismissed')}
+                                                className="btn btn-secondary btn-sm"
+                                            >
+                                                Dismiss
                                             </button>
                                         </div>
-                                        <p className="mb-4">{post.content}</p>
-                                        {post.mediaUrl && (
-                                            post.mediaType === 'video' ? (
-                                                <video
-                                                    controls
-                                                    className="w-full rounded-lg max-h-96"
-                                                    preload="metadata"
-                                                >
-                                                    <source src={post.mediaUrl} type="video/mp4" />
-                                                    <source src={post.mediaUrl} type="video/webm" />
-                                                    <source src={post.mediaUrl} type="video/ogg" />
-                                                    Your browser does not support the video tag.
-                                                </video>
-                                            ) : (
-                                                <img
-                                                    src={post.mediaUrl}
-                                                    alt="Post"
-                                                    className="w-full rounded-lg max-h-96 object-cover"
-                                                />
-                                            )
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Pagination */}
-                            {postsTotalPages > 1 && (
-                                <div className="flex justify-center gap-2 mt-6">
-                                    <button
-                                        onClick={() => setPostsPage(p => Math.max(1, p - 1))}
-                                        disabled={postsPage === 1}
-                                        className="btn btn-secondary btn-sm"
-                                    >
-                                        Previous
-                                    </button>
-                                    <span className="flex items-center px-4">
-                                        Page {postsPage} of {postsTotalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setPostsPage(p => Math.min(postsTotalPages, p + 1))}
-                                        disabled={postsPage === postsTotalPages}
-                                        className="btn btn-secondary btn-sm"
-                                    >
-                                        Next
-                                    </button>
+                                    )}
                                 </div>
-                            )}
+                            ))}
                         </div>
-                    )}
 
-                    {/* Reports Tab */}
-                    {activeTab === 'reports' && (
-                        <div>
-                            <div className="mb-6">
-                                <select
-                                    className="input"
-                                    value={reportsStatus}
-                                    onChange={(e) => setReportsStatus(e.target.value)}
+                        {/* Pagination */}
+                        {reportsTotalPages > 1 && (
+                            <div className="flex justify-center gap-2 mt-6">
+                                <button
+                                    onClick={() => setReportsPage(p => Math.max(1, p - 1))}
+                                    disabled={reportsPage === 1}
+                                    className="btn btn-secondary btn-sm"
                                 >
-                                    <option value="all">All Reports</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="resolved">Resolved</option>
-                                    <option value="dismissed">Dismissed</option>
-                                </select>
+                                    Previous
+                                </button>
+                                <span className="flex items-center px-4">
+                                    Page {reportsPage} of {reportsTotalPages}
+                                </span>
+                                <button
+                                    onClick={() => setReportsPage(p => Math.min(reportsTotalPages, p + 1))}
+                                    disabled={reportsPage === reportsTotalPages}
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    Next
+                                </button>
                             </div>
-
-                            <div className="space-y-4">
-                                {reports.map((report) => (
-                                    <div key={report._id} className="card">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <p className="font-medium">
-                                                    Report by {report.reporter?.username}
-                                                </p>
-                                                <p className="text-sm text-text-muted">
-                                                    {new Date(report.createdAt).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${report.status === 'pending' ? 'bg-error/20 text-error' :
-                                                report.status === 'resolved' ? 'bg-green-500/20 text-green-500' :
-                                                    'bg-bg-secondary'
-                                                }`}>
-                                                {report.status}
-                                            </span>
-                                        </div>
-                                        <p className="mb-2">
-                                            <span className="font-medium">Reason:</span> {report.reason}
-                                        </p>
-                                        {report.description && (
-                                            <p className="mb-2 text-text-secondary">{report.description}</p>
-                                        )}
-                                        {report.reportedUser && (
-                                            <p className="mb-2">
-                                                <span className="font-medium">Reported User:</span> {report.reportedUser.username}
-                                            </p>
-                                        )}
-                                        {report.reportedPost && (
-                                            <p className="mb-4 text-text-secondary">
-                                                <span className="font-medium">Reported Post:</span> {report.reportedPost.content?.substring(0, 100)}...
-                                            </p>
-                                        )}
-                                        {report.status === 'pending' && (
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleResolveReport(report._id, 'resolved')}
-                                                    className="btn btn-primary btn-sm"
-                                                >
-                                                    Resolve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleResolveReport(report._id, 'dismissed')}
-                                                    className="btn btn-secondary btn-sm"
-                                                >
-                                                    Dismiss
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Pagination */}
-                            {reportsTotalPages > 1 && (
-                                <div className="flex justify-center gap-2 mt-6">
-                                    <button
-                                        onClick={() => setReportsPage(p => Math.max(1, p - 1))}
-                                        disabled={reportsPage === 1}
-                                        className="btn btn-secondary btn-sm"
-                                    >
-                                        Previous
-                                    </button>
-                                    <span className="flex items-center px-4">
-                                        Page {reportsPage} of {reportsTotalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setReportsPage(p => Math.min(reportsTotalPages, p + 1))}
-                                        disabled={reportsPage === reportsTotalPages}
-                                        className="btn btn-secondary btn-sm"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </>
+                        )}
+                    </div>
+                )
             )}
 
             {/* Ban User Modal */}
@@ -517,6 +580,14 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Media Viewer */}
+            <MediaViewer
+                isOpen={mediaViewer.isOpen}
+                onClose={() => setMediaViewer({ ...mediaViewer, isOpen: false })}
+                mediaUrl={mediaViewer.url}
+                mediaType={mediaViewer.type}
+            />
         </div>
     );
 };
