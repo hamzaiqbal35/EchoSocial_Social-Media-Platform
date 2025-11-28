@@ -300,7 +300,7 @@ const Navbar = () => {
 
                 {/* Mobile Search Overlay */}
                 {showMobileSearch && (
-                    <div className="absolute top-16 left-0 right-0 p-4 glass border-b border-border md:hidden animate-fade-in">
+                    <div className="absolute top-16 left-0 right-0 p-4 bg-bg-primary/95 backdrop-blur-xl border-b border-border md:hidden animate-fade-in">
                         <input
                             type="text"
                             placeholder="Search users..."
@@ -373,7 +373,7 @@ const Navbar = () => {
                         ></div>
 
                         {/* Mobile Menu Panel */}
-                        <div className="fixed top-0 left-0 h-full w-64 bg-bg-card border-r border-border z-50 md:hidden animate-slide-in">
+                        <div className="fixed top-0 left-0 h-full w-64 bg-bg-primary/95 backdrop-blur-xl border-r border-border z-50 md:hidden animate-slide-in shadow-2xl">
                             <div className="flex flex-col h-full">
                                 {/* Menu Header */}
                                 <div className="flex items-center justify-between p-4 border-b border-border">
