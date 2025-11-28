@@ -75,8 +75,8 @@ const People = () => {
                     <button
                         onClick={() => setActiveTab('suggested')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'suggested'
-                                ? 'bg-primary text-white shadow-md'
-                                : 'text-text-secondary hover:text-text-primary'
+                            ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                             }`}
                     >
                         Suggested
@@ -84,8 +84,8 @@ const People = () => {
                     <button
                         onClick={() => setActiveTab('following')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'following'
-                                ? 'bg-primary text-white shadow-md'
-                                : 'text-text-secondary hover:text-text-primary'
+                            ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                             }`}
                     >
                         Following
