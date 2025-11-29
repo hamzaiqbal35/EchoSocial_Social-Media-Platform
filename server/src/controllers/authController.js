@@ -62,6 +62,18 @@ exports.login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        // Check if user is banned
+        if (user.bannedUntil && new Date(user.bannedUntil) > new Date()) {
+            return res.status(403).json({
+                message: `Your account has been banned until ${new Date(user.bannedUntil).toLocaleDateString()}. Reason: ${user.bannedReason || 'Violation of terms'}`
+            });
+        }
+
+        // Check if user is active
+        if (user.isActive === false) {
+            return res.status(403).json({ message: 'Your account has been deactivated. Please contact support.' });
+        }
+
         // Check password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
