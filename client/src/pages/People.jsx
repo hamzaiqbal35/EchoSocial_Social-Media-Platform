@@ -32,6 +32,9 @@ const People = () => {
             } else {
                 response = await userAPI.getFollowing(currentUser._id);
                 setUsers(response.data);
+                // Update followingIds to include all users in the following list
+                const followingUserIds = response.data.map(u => u._id);
+                setFollowingIds(followingUserIds);
             }
         } catch (error) {
             console.error('Failed to load users:', error);
