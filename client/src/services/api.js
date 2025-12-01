@@ -74,6 +74,7 @@ export const postAPI = {
     getUserPosts: (userId, page = 1, limit = 10) =>
         api.get(`/posts/user/${userId}?page=${page}&limit=${limit}`),
     searchPosts: (query) => api.get(`/posts/search?query=${query}`),
+    sharePost: (id, userIds) => api.post(`/posts/${id}/share`, { userIds }),
 };
 
 // Comment API

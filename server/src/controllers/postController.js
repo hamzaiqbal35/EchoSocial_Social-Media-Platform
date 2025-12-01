@@ -283,3 +283,35 @@ exports.searchPosts = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Share post with other users
+exports.sharePost = async (req, res) => {
+    try {
+        const { userIds } = req.body;
+        const postId = req.params.id;
+
+        if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+            return res.status(400).json({ message: 'Please select at least one user to share with' });
+        }
+
+        // Verify post exists
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Create notifications for all selected users
+        const notifications = userIds.map(userId => ({
+            user: userId,
+            type: 'share',
+            actor: req.user._id,
+            post: postId
+        }));
+
+        await Notification.insertMany(notifications);
+
+        res.json({ message: 'Post shared successfully', sharedWith: userIds.length });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

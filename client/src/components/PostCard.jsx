@@ -6,6 +6,7 @@ import { formatRelativeTime, getImageUrl } from '../utils/helpers';
 import Avatar from './Avatar';
 import Modal from './Modal';
 import MediaViewer from './MediaViewer';
+import ShareModal from './ShareModal';
 
 const PostCard = ({ post: initialPost, onDelete }) => {
     const { user } = useAuth();
@@ -16,6 +17,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [loadingComments, setLoadingComments] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showFullScreen, setShowFullScreen] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     const isLiked = post.likes?.some(like =>
         typeof like === 'string' ? like === user?._id : like._id === user?._id
@@ -48,28 +50,8 @@ const PostCard = ({ post: initialPost, onDelete }) => {
         }
     };
 
-    const handleShare = async () => {
-        const shareUrl = `${window.location.origin}/post/${post._id}`;
-        const shareData = {
-            title: `Post by ${post.author?.username}`,
-            text: post.content,
-            url: shareUrl,
-        };
-
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-            } catch (err) {
-                console.error('Error sharing:', err);
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(shareUrl);
-                alert('Link copied to clipboard!');
-            } catch (err) {
-                console.error('Failed to copy link:', err);
-            }
-        }
+    const handleShare = () => {
+        setShowShareModal(true);
     };
 
     const loadComments = async () => {
@@ -281,6 +263,13 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                 onClose={() => setShowFullScreen(false)}
                 mediaUrl={post.mediaUrl ? getImageUrl(post.mediaUrl) : (post.image ? getImageUrl(post.image) : '')}
                 mediaType={post.mediaType || 'image'}
+            />
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                post={post}
             />
         </>
     );

@@ -26,6 +26,9 @@ router.delete('/:id', auth, postController.deletePost);
 router.post('/:id/like', auth, postController.likePost);
 router.delete('/:id/like', auth, postController.unlikePost);
 
+// Share post (protected)
+router.post('/:id/share', auth, postController.sharePost);
+
 // Get user's posts
 router.get('/user/:userId', postController.getUserPosts);
 
