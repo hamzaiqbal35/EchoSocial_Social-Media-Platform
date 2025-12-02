@@ -49,12 +49,21 @@ exports.getUserProfile = async (req, res) => {
 // Update user profile
 exports.updateProfile = async (req, res) => {
     try {
-        const { bio, avatar } = req.body;
+        const { bio, avatar, username } = req.body;
 
         const user = await User.findById(req.user._id);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if username is taken
+        if (username && username !== user.username) {
+            const usernameExists = await User.findOne({ username });
+            if (usernameExists) {
+                return res.status(400).json({ message: 'Username is already taken' });
+            }
+            user.username = username;
         }
 
         // Update fields
@@ -64,6 +73,65 @@ exports.updateProfile = async (req, res) => {
         await user.save();
 
         res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Change password
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(req.user._id).select('+password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check current password
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid current password' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Delete account
+exports.deleteAccount = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Delete user's posts
+        await Post.deleteMany({ author: user._id });
+
+        // Delete user's comments
+        const Comment = require('../models/Comment');
+        await Comment.deleteMany({ user: user._id });
+
+        // Delete user's notifications
+        await Notification.deleteMany({ $or: [{ user: user._id }, { actor: user._id }] });
+
+        // Remove user from followers/following of other users
+        await User.updateMany(
+            { $or: [{ followers: user._id }, { following: user._id }] },
+            { $pull: { followers: user._id, following: user._id } }
+        );
+
+        // Delete user
+        await User.findByIdAndDelete(user._id);
+
+        res.json({ message: 'Account deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -15,6 +15,12 @@ router.get('/:id', userController.getUserProfile);
 // Update profile (protected)
 router.put('/profile', auth, userController.updateProfile);
 
+// Change password (protected)
+router.put('/password', auth, userController.changePassword);
+
+// Delete account (protected)
+router.delete('/account', auth, userController.deleteAccount);
+
 // Follow/unfollow user (protected)
 router.post('/:id/follow', auth, userController.followUser);
 router.delete('/:id/follow', auth, userController.unfollowUser);
