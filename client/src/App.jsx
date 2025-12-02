@@ -14,6 +14,8 @@ import Landing from './pages/Landing';
 import AdminDashboard from './pages/AdminDashboard';
 import PostView from './pages/PostView';
 import AdminRoute from './components/AdminRoute';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
               <Route path="/welcome" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
 
               {/* Protected Routes */}
               <Route

@@ -72,6 +72,12 @@ const Login = () => {
                             />
                         </div>
 
+                        <div className="flex justify-end">
+                            <Link to="/forgot-password" className="text-sm text-primary hover:text-primary-light font-medium">
+                                Forgot Password?
+                            </Link>
+                        </div>
+
                         {error && (
                             <div className="bg-error bg-opacity-10 border border-error text-error rounded-lg p-3 text-sm">
                                 {error}
