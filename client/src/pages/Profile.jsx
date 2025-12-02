@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar';
 import PostCard from '../components/PostCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
+import ReportModal from '../components/ReportModal';
 
 const Profile = () => {
     const { id } = useParams();
@@ -15,7 +16,10 @@ const Profile = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const [editBio, setEditBio] = useState('');
     const [editAvatar, setEditAvatar] = useState('');
     const [updating, setUpdating] = useState(false);
@@ -39,6 +43,13 @@ const Profile = () => {
                 setIsFollowing(
                     currentUser.following?.some(f =>
                         typeof f === 'string' ? f === id : f._id === id
+                    )
+                );
+
+                // Check if blocked
+                setIsBlocked(
+                    currentUser.blockedUsers?.some(b =>
+                        typeof b === 'string' ? b === id : b._id === id
                     )
                 );
             }
@@ -109,6 +120,23 @@ const Profile = () => {
         }
     };
 
+    const handleBlock = async () => {
+        try {
+            if (isBlocked) {
+                await userAPI.unblockUser(id);
+                setIsBlocked(false);
+            } else {
+                await userAPI.blockUser(id);
+                setIsBlocked(true);
+                // Unfollow when blocking
+                setIsFollowing(false);
+            }
+            setShowOptionsMenu(false);
+        } catch (error) {
+            console.error('Failed to block/unblock user:', error);
+        }
+    };
+
     const handlePostDeleted = (postId) => {
         setPosts(posts.filter(p => p._id !== postId));
         if (profile) {
@@ -156,12 +184,62 @@ const Profile = () => {
                                         Edit Profile
                                     </button>
                                 ) : (
-                                    <button
-                                        onClick={handleFollow}
-                                        className={`btn btn-sm ${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
-                                    >
-                                        {isFollowing ? 'Unfollow' : 'Follow'}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleFollow}
+                                            className={`btn btn-sm ${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
+                                            disabled={isBlocked}
+                                        >
+                                            {isFollowing ? 'Unfollow' : 'Follow'}
+                                        </button>
+
+                                        {/* Options Menu */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                                                className="btn btn-ghost btn-sm p-2"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                                </svg>
+                                            </button>
+
+                                            {showOptionsMenu && (
+                                                <>
+                                                    {/* Backdrop to close menu */}
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={() => setShowOptionsMenu(false)}
+                                                    />
+
+                                                    {/* Menu */}
+                                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-20">
+                                                        <button
+                                                            onClick={handleBlock}
+                                                            className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-3 text-gray-900 dark:text-gray-100 rounded-t-lg"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                            </svg>
+                                                            <span>{isBlocked ? 'Unblock User' : 'Block User'}</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowReportModal(true);
+                                                                setShowOptionsMenu(false);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-3 text-red-600 dark:text-red-400 border-t border-gray-200 dark:border-slate-700 rounded-b-lg"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                            </svg>
+                                                            <span>Report User</span>
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
@@ -263,6 +341,15 @@ const Profile = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Report Modal */}
+            <ReportModal
+                isOpen={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                reportType="user"
+                targetId={id}
+                targetName={profile?.username}
+            />
         </>
     );
 };

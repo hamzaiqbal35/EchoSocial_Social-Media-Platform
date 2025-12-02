@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { adminAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
@@ -470,12 +471,24 @@ const AdminDashboard = () => {
                                     )}
                                     {report.reportedUser && (
                                         <p className="mb-2">
-                                            <span className="font-medium">Reported User:</span> {report.reportedUser.username}
+                                            <span className="font-medium">Reported User:</span>{' '}
+                                            <Link
+                                                to={`/profile/${report.reportedUser._id}`}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {report.reportedUser.username}
+                                            </Link>
                                         </p>
                                     )}
                                     {report.reportedPost && (
                                         <p className="mb-4 text-text-secondary">
-                                            <span className="font-medium">Reported Post:</span> {report.reportedPost.content?.substring(0, 100)}...
+                                            <span className="font-medium">Reported Post:</span>{' '}
+                                            <Link
+                                                to={`/`}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {report.reportedPost.content?.substring(0, 100)}...
+                                            </Link>
                                         </p>
                                     )}
                                     {report.status === 'pending' && (

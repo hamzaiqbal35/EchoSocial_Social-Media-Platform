@@ -10,15 +10,32 @@ exports.getFeed = async (req, res) => {
 
         const currentUser = await User.findById(req.user._id);
 
-        // Get all posts (global feed)
-        const posts = await Post.find()
+        // Get users who have blocked the current user
+        const usersWhoBlockedMe = await User.find({
+            blockedUsers: currentUser._id
+        }).select('_id');
+
+        const blockedByIds = usersWhoBlockedMe.map(u => u._id);
+
+        // Combine blocked users: users I blocked + users who blocked me
+        const allBlockedUserIds = [
+            ...currentUser.blockedUsers,
+            ...blockedByIds
+        ];
+
+        // Get posts excluding blocked users
+        const posts = await Post.find({
+            author: { $nin: allBlockedUserIds }
+        })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .populate('author', 'username avatar')
             .populate('likes', 'username');
 
-        const total = await Post.countDocuments();
+        const total = await Post.countDocuments({
+            author: { $nin: allBlockedUserIds }
+        });
 
         res.json({
             posts,

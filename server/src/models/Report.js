@@ -40,12 +40,4 @@ const reportSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Ensure either reportedUser or reportedPost is provided
-reportSchema.pre('save', function (next) {
-    if (!this.reportedUser && !this.reportedPost) {
-        next(new Error('Either reportedUser or reportedPost must be provided'));
-    }
-    next();
-});
-
 module.exports = mongoose.model('Report', reportSchema);
