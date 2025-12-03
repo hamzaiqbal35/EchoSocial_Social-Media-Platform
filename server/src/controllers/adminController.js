@@ -205,6 +205,15 @@ exports.resolveReport = async (req, res) => {
 
         await report.save();
 
+        // Create notification for the reporter
+        const Notification = require('../models/Notification');
+        await Notification.create({
+            user: report.reporter,
+            type: 'report_status',
+            actor: req.user._id, // Admin who resolved it
+            report: report._id
+        });
+
         res.json({ message: 'Report updated successfully', report });
     } catch (error) {
         res.status(500).json({ message: error.message });

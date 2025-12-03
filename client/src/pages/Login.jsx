@@ -41,7 +41,7 @@ const Login = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
+                    <h1 className="text-3xl font-bold gradient-text">Welcome</h1>
                     <p className="text-text-muted mt-2">Sign in to continue to EchoSocial</p>
                 </div>
 

@@ -8,17 +8,21 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['follow', 'like', 'comment', 'post', 'share'],
+        enum: ['follow', 'like', 'comment', 'post', 'share', 'report_status'],
         required: true
     },
     actor: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
+        // required removed to allow system notifications
     },
     post: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Post'
+    },
+    report: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Report'
     },
     read: {
         type: Boolean,

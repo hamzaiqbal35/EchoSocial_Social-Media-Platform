@@ -7,7 +7,8 @@ exports.getNotifications = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(50)
             .populate('actor', 'username avatar')
-            .populate('post', 'content');
+            .populate('post', 'content')
+            .populate('report', 'status reason');
 
         res.json(notifications);
     } catch (error) {
