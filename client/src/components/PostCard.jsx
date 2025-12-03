@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { postAPI, commentAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,12 +23,19 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [showOptionsMenu, setShowOptionsMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
 
+    // Refs to store video elements
+    const videoRefs = useRef({});
+
     const isLiked = post.likes?.some(like =>
         typeof like === 'string' ? like === user?._id : like._id === user?._id
     );
     const isOwner = post.author?._id === user?._id;
 
     const handleMediaClick = (url, type) => {
+        // Mute all videos when opening full screen to prevent double audio
+        Object.values(videoRefs.current).forEach(video => {
+            if (video) video.muted = true;
+        });
         setSelectedMedia({ url, type });
         setShowFullScreen(true);
     };
@@ -191,6 +198,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                             >
                                 {item.type === 'video' ? (
                                     <video
+                                        ref={el => videoRefs.current[`${post._id}-${index}`] = el}
                                         src={getImageUrl(item.url)}
                                         className="w-full h-64 object-cover rounded-lg"
                                         controls
@@ -209,6 +217,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                     <div className="mb-4 cursor-pointer" onClick={() => handleMediaClick(post.mediaUrl, post.mediaType)}>
                         {post.mediaType === 'video' ? (
                             <video
+                                ref={el => videoRefs.current[`${post._id}-legacy`] = el}
                                 src={getImageUrl(post.mediaUrl)}
                                 className="w-full rounded-lg max-h-96 object-cover"
                                 controls

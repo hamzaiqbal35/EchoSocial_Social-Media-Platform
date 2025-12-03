@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { adminAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -36,12 +36,23 @@ const AdminDashboard = () => {
     const [debouncedUsersSearch, setDebouncedUsersSearch] = useState('');
     const [mediaViewer, setMediaViewer] = useState({ isOpen: false, url: null, type: null });
 
+    // Refs to store video elements
+    const videoRefs = useRef({});
+
     const getMediaUrl = (url) => {
         if (!url) return '';
         if (url.startsWith('/')) {
             return `http://localhost:5000${url}`;
         }
         return url;
+    };
+
+    const handleMediaClick = (url, type) => {
+        // Mute all videos when opening full screen to prevent double audio
+        Object.values(videoRefs.current).forEach(video => {
+            if (video) video.muted = true;
+        });
+        setMediaViewer({ isOpen: true, url, type });
     };
 
     useEffect(() => {
@@ -365,6 +376,7 @@ const AdminDashboard = () => {
                                                             {item.type === 'video' ? (
                                                                 <div className="relative">
                                                                     <video
+                                                                        ref={el => videoRefs.current[`${post._id}-${index}`] = el}
                                                                         controls
                                                                         className="w-full rounded-lg max-h-96 bg-black object-cover"
                                                                         preload="metadata"
@@ -375,7 +387,7 @@ const AdminDashboard = () => {
                                                                         Your browser does not support the video tag.
                                                                     </video>
                                                                     <button
-                                                                        onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(item.url), type: 'video' })}
+                                                                        onClick={() => handleMediaClick(getMediaUrl(item.url), 'video')}
                                                                         className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
                                                                         title="View Fullscreen"
                                                                     >
@@ -385,7 +397,7 @@ const AdminDashboard = () => {
                                                                     </button>
                                                                 </div>
                                                             ) : (
-                                                                <div className="relative cursor-pointer" onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(item.url), type: 'image' })}>
+                                                                <div className="relative cursor-pointer" onClick={() => handleMediaClick(getMediaUrl(item.url), 'image')}>
                                                                     <img
                                                                         src={getMediaUrl(item.url)}
                                                                         alt={`Post media ${index + 1}`}
@@ -409,6 +421,7 @@ const AdminDashboard = () => {
                                                 {isVideo ? (
                                                     <div className="relative">
                                                         <video
+                                                            ref={el => videoRefs.current[`${post._id}-legacy`] = el}
                                                             controls
                                                             className="w-full rounded-lg max-h-96 bg-black"
                                                             preload="metadata"
@@ -419,7 +432,7 @@ const AdminDashboard = () => {
                                                             Your browser does not support the video tag.
                                                         </video>
                                                         <button
-                                                            onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(mediaUrl), type: 'video' })}
+                                                            onClick={() => handleMediaClick(getMediaUrl(mediaUrl), 'video')}
                                                             className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
                                                             title="View Fullscreen"
                                                         >
@@ -429,7 +442,7 @@ const AdminDashboard = () => {
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <div className="relative cursor-pointer" onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(mediaUrl), type: 'image' })}>
+                                                    <div className="relative cursor-pointer" onClick={() => handleMediaClick(getMediaUrl(mediaUrl), 'image')}>
                                                         <img
                                                             src={getMediaUrl(mediaUrl)}
                                                             alt="Post"
