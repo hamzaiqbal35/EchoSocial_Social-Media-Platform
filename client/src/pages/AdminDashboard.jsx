@@ -39,6 +39,31 @@ const AdminDashboard = () => {
     // Refs to store video elements
     const videoRefs = useRef({});
 
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        const video = entry.target;
+                        if (!video.paused) {
+                            video.pause();
+                        }
+                    }
+                });
+            },
+            { threshold: 0.5 } // Pause when less than 50% visible
+        );
+
+        // Observe all video elements
+        Object.values(videoRefs.current).forEach((video) => {
+            if (video) observer.observe(video);
+        });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [posts]); // Re-run when posts change
+
     const getMediaUrl = (url) => {
         if (!url) return '';
         if (url.startsWith('/')) {

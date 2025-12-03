@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { postAPI, commentAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,31 @@ const PostCard = ({ post: initialPost, onDelete }) => {
 
     // Refs to store video elements
     const videoRefs = useRef({});
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        const video = entry.target;
+                        if (!video.paused) {
+                            video.pause();
+                        }
+                    }
+                });
+            },
+            { threshold: 0.5 } // Pause when less than 50% visible
+        );
+
+        // Observe all video elements
+        Object.values(videoRefs.current).forEach((video) => {
+            if (video) observer.observe(video);
+        });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [post.media, post.mediaUrl]);
 
     const isLiked = post.likes?.some(like =>
         typeof like === 'string' ? like === user?._id : like._id === user?._id
