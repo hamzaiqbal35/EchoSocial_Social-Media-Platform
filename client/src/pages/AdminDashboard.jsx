@@ -349,11 +349,61 @@ const AdminDashboard = () => {
                                     </div>
                                     <p className="mb-4">{post.content}</p>
                                     {(() => {
+                                        const hasMedia = post.media && post.media.length > 0;
                                         const mediaUrl = post.mediaUrl || post.image;
+
+                                        if (!hasMedia && !mediaUrl) return null;
+
+                                        if (hasMedia) {
+                                            return (
+                                                <div className={`grid gap-2 ${post.media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                                    {post.media.map((item, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className={`relative group ${post.media.length === 3 && index === 0 ? 'col-span-2' : ''}`}
+                                                        >
+                                                            {item.type === 'video' ? (
+                                                                <div className="relative">
+                                                                    <video
+                                                                        controls
+                                                                        className="w-full rounded-lg max-h-96 bg-black object-cover"
+                                                                        preload="metadata"
+                                                                    >
+                                                                        <source src={getMediaUrl(item.url)} type="video/mp4" />
+                                                                        <source src={getMediaUrl(item.url)} type="video/webm" />
+                                                                        <source src={getMediaUrl(item.url)} type="video/ogg" />
+                                                                        Your browser does not support the video tag.
+                                                                    </video>
+                                                                    <button
+                                                                        onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(item.url), type: 'video' })}
+                                                                        className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                                                        title="View Fullscreen"
+                                                                    >
+                                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="relative cursor-pointer" onClick={() => setMediaViewer({ isOpen: true, url: getMediaUrl(item.url), type: 'image' })}>
+                                                                    <img
+                                                                        src={getMediaUrl(item.url)}
+                                                                        alt={`Post media ${index + 1}`}
+                                                                        className="w-full rounded-lg max-h-96 object-cover hover:opacity-95 transition-opacity"
+                                                                    />
+                                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                                                                        <span className="text-white bg-black/50 px-3 py-1 rounded-full text-sm">View Fullscreen</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        }
+
+                                        // Legacy single media support
                                         const isVideo = post.mediaType === 'video' || (mediaUrl && mediaUrl.match(/\.(mp4|webm|ogg)$/i));
-
-                                        if (!mediaUrl) return null;
-
                                         return (
                                             <div className="relative group">
                                                 {isVideo ? (

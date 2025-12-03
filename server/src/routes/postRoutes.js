@@ -14,10 +14,10 @@ router.get('/', postController.getAllPosts);
 router.get('/:id', postController.getPost);
 
 // Create post (protected)
-router.post('/', auth, upload.single('image'), postController.createPost);
+router.post('/', auth, upload.array('media', 10), postController.createPost);
 
 // Update post (protected)
-router.put('/:id', auth, upload.single('image'), postController.updatePost);
+router.put('/:id', auth, upload.array('media', 10), postController.updatePost);
 
 // Delete post (protected)
 router.delete('/:id', auth, postController.deletePost);

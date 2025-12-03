@@ -18,6 +18,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [loadingComments, setLoadingComments] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showFullScreen, setShowFullScreen] = useState(false);
+    const [selectedMedia, setSelectedMedia] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [showOptionsMenu, setShowOptionsMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -26,6 +27,11 @@ const PostCard = ({ post: initialPost, onDelete }) => {
         typeof like === 'string' ? like === user?._id : like._id === user?._id
     );
     const isOwner = post.author?._id === user?._id;
+
+    const handleMediaClick = (url, type) => {
+        setSelectedMedia({ url, type });
+        setShowFullScreen(true);
+    };
 
     const handleLike = async () => {
         try {
@@ -175,12 +181,37 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                 <p className="mb-4 whitespace-pre-wrap">{post.content}</p>
 
                 {/* Post Media */}
-                {post.mediaUrl && (
-                    <div className="mb-4 cursor-pointer" onClick={() => setShowFullScreen(true)}>
+                {post.media && post.media.length > 0 ? (
+                    <div className={`mb-4 ${post.media.length > 1 ? 'grid grid-cols-2 gap-1' : ''}`}>
+                        {post.media.map((item, index) => (
+                            <div
+                                key={index}
+                                className={`cursor-pointer relative ${post.media.length === 3 && index === 0 ? 'col-span-2' : ''}`}
+                                onClick={() => handleMediaClick(item.url, item.type)}
+                            >
+                                {item.type === 'video' ? (
+                                    <video
+                                        src={getImageUrl(item.url)}
+                                        className="w-full h-64 object-cover rounded-lg"
+                                        controls
+                                    />
+                                ) : (
+                                    <img
+                                        src={getImageUrl(item.url)}
+                                        alt={`Post media ${index + 1}`}
+                                        className="w-full h-64 object-cover rounded-lg"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : post.mediaUrl ? (
+                    <div className="mb-4 cursor-pointer" onClick={() => handleMediaClick(post.mediaUrl, post.mediaType)}>
                         {post.mediaType === 'video' ? (
                             <video
                                 src={getImageUrl(post.mediaUrl)}
                                 className="w-full rounded-lg max-h-96 object-cover"
+                                controls
                             />
                         ) : (
                             <img
@@ -190,11 +221,8 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                             />
                         )}
                     </div>
-                )}
-
-                {/* Backward compatibility for old posts */}
-                {!post.mediaUrl && post.image && (
-                    <div className="mb-4 cursor-pointer" onClick={() => setShowFullScreen(true)}>
+                ) : post.image && (
+                    <div className="mb-4 cursor-pointer" onClick={() => handleMediaClick(post.image, 'image')}>
                         <img
                             src={getImageUrl(post.image)}
                             alt="Post"
@@ -313,8 +341,8 @@ const PostCard = ({ post: initialPost, onDelete }) => {
             <MediaViewer
                 isOpen={showFullScreen}
                 onClose={() => setShowFullScreen(false)}
-                mediaUrl={post.mediaUrl ? getImageUrl(post.mediaUrl) : (post.image ? getImageUrl(post.image) : '')}
-                mediaType={post.mediaType || 'image'}
+                mediaUrl={selectedMedia ? getImageUrl(selectedMedia.url) : ''}
+                mediaType={selectedMedia ? selectedMedia.type : 'image'}
             />
 
             {/* Share Modal */}

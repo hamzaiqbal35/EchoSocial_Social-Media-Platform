@@ -4,33 +4,62 @@ import LoadingSpinner from './LoadingSpinner';
 
 const CreatePost = ({ onPostCreated }) => {
     const [content, setContent] = useState('');
-    const [media, setMedia] = useState(null);
-    const [mediaPreview, setMediaPreview] = useState('');
-    const [mediaType, setMediaType] = useState(''); // 'image' or 'video'
+    const [mediaFiles, setMediaFiles] = useState([]);
+    const [mediaPreviews, setMediaPreviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleMediaChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 50 * 1024 * 1024) {
-                setError('File size must be less than 50MB');
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            const newFiles = [];
+            const newPreviews = [];
+            let hasError = false;
+
+            if (mediaFiles.length + files.length > 10) {
+                setError('You can only upload up to 10 files');
                 return;
             }
 
-            const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-            setMedia(file);
-            setMediaType(fileType);
-            setMediaPreview(URL.createObjectURL(file));
-            setError('');
+            files.forEach(file => {
+                if (file.size > 50 * 1024 * 1024) {
+                    setError(`File ${file.name} is too large (max 50MB)`);
+                    hasError = true;
+                    return;
+                }
+                newFiles.push(file);
+                newPreviews.push({
+                    url: URL.createObjectURL(file),
+                    type: file.type.startsWith('video/') ? 'video' : 'image'
+                });
+            });
+
+            if (!hasError) {
+                setMediaFiles([...mediaFiles, ...newFiles]);
+                setMediaPreviews([...mediaPreviews, ...newPreviews]);
+                setError('');
+            }
         }
+    };
+
+    const removeMedia = (index) => {
+        const newFiles = [...mediaFiles];
+        const newPreviews = [...mediaPreviews];
+
+        URL.revokeObjectURL(newPreviews[index].url);
+
+        newFiles.splice(index, 1);
+        newPreviews.splice(index, 1);
+
+        setMediaFiles(newFiles);
+        setMediaPreviews(newPreviews);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!content.trim()) {
-            setError('Please write something');
+        if (!content.trim() && mediaFiles.length === 0) {
+            setError('Please write something or add media');
             return;
         }
 
@@ -40,15 +69,14 @@ const CreatePost = ({ onPostCreated }) => {
         try {
             const formData = new FormData();
             formData.append('content', content);
-            if (media) {
-                formData.append('image', media); // Using 'image' key as backend expects file in this field or we can change backend to accept 'media'
-            }
+            mediaFiles.forEach(file => {
+                formData.append('media', file);
+            });
 
             const response = await postAPI.createPost(formData);
             setContent('');
-            setMedia(null);
-            setMediaPreview('');
-            setMediaType('');
+            setMediaFiles([]);
+            setMediaPreviews([]);
             if (onPostCreated) {
                 onPostCreated(response.data);
             }
@@ -71,34 +99,34 @@ const CreatePost = ({ onPostCreated }) => {
                     disabled={loading}
                 />
 
-                {mediaPreview && (
-                    <div className="mt-4 relative">
-                        {mediaType === 'video' ? (
-                            <video
-                                src={mediaPreview}
-                                controls
-                                className="w-full rounded-lg max-h-96 object-cover"
-                            />
-                        ) : (
-                            <img
-                                src={mediaPreview}
-                                alt="Preview"
-                                className="w-full rounded-lg max-h-96 object-cover"
-                            />
-                        )}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setMedia(null);
-                                setMediaPreview('');
-                                setMediaType('');
-                            }}
-                            className="absolute top-2 right-2 bg-bg-primary bg-opacity-80 text-white rounded-full p-2 hover:bg-opacity-100 transition-all"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                {mediaPreviews.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                        {mediaPreviews.map((media, index) => (
+                            <div key={index} className="relative group">
+                                {media.type === 'video' ? (
+                                    <video
+                                        src={media.url}
+                                        className="w-full h-48 rounded-lg object-cover"
+                                        controls
+                                    />
+                                ) : (
+                                    <img
+                                        src={media.url}
+                                        alt={`Preview ${index + 1}`}
+                                        className="w-full h-48 rounded-lg object-cover"
+                                    />
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => removeMedia(index)}
+                                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -117,6 +145,7 @@ const CreatePost = ({ onPostCreated }) => {
                             accept="image/*,video/*"
                             onChange={handleMediaChange}
                             className="hidden"
+                            multiple
                             disabled={loading}
                         />
                     </label>
@@ -128,7 +157,7 @@ const CreatePost = ({ onPostCreated }) => {
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={loading || !content.trim()}
+                            disabled={loading || (!content.trim() && mediaFiles.length === 0)}
                         >
                             {loading ? <LoadingSpinner size="sm" /> : 'Post'}
                         </button>

@@ -51,24 +51,28 @@ exports.getPost = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         const { content } = req.body;
+        let media = [];
         let mediaUrl = '';
         let mediaType = '';
 
-        if (req.file) {
-            mediaUrl = `/uploads/${req.file.filename}`;
-            // Determine media type based on mimetype
-            if (req.file.mimetype.startsWith('video/')) {
-                mediaType = 'video';
-            } else {
-                mediaType = 'image';
-            }
+        // Handle multiple files
+        if (req.files && req.files.length > 0) {
+            media = req.files.map(file => ({
+                url: `/uploads/${file.filename}`,
+                type: file.mimetype.startsWith('video/') ? 'video' : 'image'
+            }));
+
+            // Set legacy fields based on the first file
+            mediaUrl = media[0].url;
+            mediaType = media[0].type;
         } else if (req.body.image) {
-            // Handle legacy/base64 image
+            // Handle legacy/base64 image (single only)
             mediaUrl = req.body.image;
             mediaType = 'image';
+            media = [{ url: mediaUrl, type: 'image' }];
         }
 
-        if (!content && !mediaUrl) {
+        if (!content && media.length === 0) {
             return res.status(400).json({ message: 'Post content or media is required' });
         }
 
@@ -77,7 +81,8 @@ exports.createPost = async (req, res) => {
             content: content || '',
             image: mediaType === 'image' ? mediaUrl : '', // Backward compatibility
             mediaUrl,
-            mediaType
+            mediaType,
+            media
         });
 
         // Notify followers
@@ -119,20 +124,28 @@ exports.updatePost = async (req, res) => {
 
         if (content !== undefined) post.content = content;
 
-        if (req.file) {
-            post.mediaUrl = `/uploads/${req.file.filename}`;
-            if (req.file.mimetype.startsWith('video/')) {
-                post.mediaType = 'video';
-                post.image = ''; // Clear legacy image field if video
-            } else {
-                post.mediaType = 'image';
-                post.image = post.mediaUrl; // Update legacy field
-            }
+        if (req.files && req.files.length > 0) {
+            // If new files are uploaded, replace existing media
+            const media = req.files.map(file => ({
+                url: `/uploads/${file.filename}`,
+                type: file.mimetype.startsWith('video/') ? 'video' : 'image'
+            }));
+
+            post.media = media;
+
+            // Update legacy fields with first item
+            post.mediaUrl = media[0].url;
+            post.mediaType = media[0].type;
+            post.image = media[0].type === 'image' ? media[0].url : '';
+
         } else if (image !== undefined) {
             // If image is explicitly sent (e.g. clearing it or base64)
+            // Note: This logic might need refinement if we want to support clearing specific media items
+            // For now, assuming this is mostly for clearing or single image updates from legacy clients
             post.image = image;
             post.mediaUrl = image;
             post.mediaType = image ? 'image' : '';
+            post.media = image ? [{ url: image, type: 'image' }] : [];
         }
 
         await post.save();
