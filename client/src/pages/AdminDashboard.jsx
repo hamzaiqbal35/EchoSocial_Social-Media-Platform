@@ -4,6 +4,18 @@ import { adminAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
 import MediaViewer from '../components/MediaViewer';
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    BarChart,
+    Bar
+} from 'recharts';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -11,6 +23,9 @@ const AdminDashboard = () => {
 
     // Overview stats
     const [stats, setStats] = useState(null);
+    const [timeRange, setTimeRange] = useState('7d');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
 
     // Users management
     const [users, setUsers] = useState([]);
@@ -89,15 +104,18 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         loadData();
-    }, [activeTab, usersPage, debouncedUsersSearch, usersFilter, postsPage, reportsPage, reportsStatus]);
+    }, [activeTab, usersPage, debouncedUsersSearch, usersFilter, postsPage, reportsPage, reportsStatus, timeRange, customStartDate, customEndDate]);
 
     const loadData = async () => {
         try {
             setLoading(true);
 
             if (activeTab === 'overview') {
-                const response = await adminAPI.getStats();
-                setStats(response.data);
+                // Only fetch if not custom or both dates are selected
+                if (timeRange !== 'custom' || (customStartDate && customEndDate)) {
+                    const response = await adminAPI.getStats(timeRange, customStartDate, customEndDate);
+                    setStats(response.data);
+                }
             } else if (activeTab === 'users') {
                 const response = await adminAPI.getAllUsers(usersPage, 20, usersSearch, usersFilter);
                 setUsers(response.data.users);
@@ -191,22 +209,164 @@ const AdminDashboard = () => {
                     </div>
                 ) : (
                     stats && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="card">
-                                <h3 className="text-text-muted text-sm font-medium mb-2">Total Users</h3>
-                                <p className="text-3xl font-bold">{stats.totalUsers}</p>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="card">
+                                    <h3 className="text-text-muted text-sm font-medium mb-2">Total Users</h3>
+                                    <p className="text-3xl font-bold">{stats.totalUsers}</p>
+                                </div>
+                                <div className="card">
+                                    <h3 className="text-text-muted text-sm font-medium mb-2">Total Posts</h3>
+                                    <p className="text-3xl font-bold">{stats.totalPosts}</p>
+                                </div>
+                                <div className="card">
+                                    <h3 className="text-text-muted text-sm font-medium mb-2">Pending Reports</h3>
+                                    <p className="text-3xl font-bold text-error">{stats.pendingReports}</p>
+                                </div>
+                                <div className="card">
+                                    <h3 className="text-text-muted text-sm font-medium mb-2">Banned Users</h3>
+                                    <p className="text-3xl font-bold text-error">{stats.bannedUsers}</p>
+                                </div>
                             </div>
-                            <div className="card">
-                                <h3 className="text-text-muted text-sm font-medium mb-2">Total Posts</h3>
-                                <p className="text-3xl font-bold">{stats.totalPosts}</p>
-                            </div>
-                            <div className="card">
-                                <h3 className="text-text-muted text-sm font-medium mb-2">Pending Reports</h3>
-                                <p className="text-3xl font-bold text-error">{stats.pendingReports}</p>
-                            </div>
-                            <div className="card">
-                                <h3 className="text-text-muted text-sm font-medium mb-2">Banned Users</h3>
-                                <p className="text-3xl font-bold text-error">{stats.bannedUsers}</p>
+
+                            {/* Charts Section */}
+                            <div>
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                                    <h3 className="text-xl font-bold">Platform Activity</h3>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {['7d', '30d', '90d', '6m', '1y'].map((range) => (
+                                            <button
+                                                key={range}
+                                                onClick={() => {
+                                                    setTimeRange(range);
+                                                    setCustomStartDate('');
+                                                    setCustomEndDate('');
+                                                }}
+                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${timeRange === range
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                    : 'bg-bg-secondary text-text-secondary border-border hover:border-indigo-600 hover:text-indigo-600'
+                                                    }`}
+                                            >
+                                                {range === '6m' ? '6 Months' : range === '1y' ? '1 Year' : range.toUpperCase()}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => setTimeRange('custom')}
+                                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${timeRange === 'custom'
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                : 'bg-bg-secondary text-text-secondary border-border hover:border-indigo-600 hover:text-indigo-600'
+                                                }`}
+                                        >
+                                            Custom
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {timeRange === 'custom' && (
+                                    <div className="flex items-center gap-4 mb-6 bg-bg-secondary p-4 rounded-lg">
+                                        <div>
+                                            <label className="block text-xs font-medium mb-1">Start Date</label>
+                                            <input
+                                                type="date"
+                                                className="input py-1"
+                                                value={customStartDate}
+                                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                                max={new Date().toISOString().split('T')[0]}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium mb-1">End Date</label>
+                                            <input
+                                                type="date"
+                                                className="input py-1"
+                                                value={customEndDate}
+                                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                                max={new Date().toISOString().split('T')[0]}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="card">
+                                        <h3 className="text-lg font-semibold mb-4">User Growth</h3>
+                                        <div className="h-80 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={stats.userGrowth}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        stroke="var(--text-secondary)"
+                                                        tickFormatter={(date) => {
+                                                            const d = new Date(date);
+                                                            return timeRange === '7d' || timeRange === '30d'
+                                                                ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+                                                                : d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+                                                        }}
+                                                    />
+                                                    <YAxis allowDecimals={false} stroke="var(--text-secondary)" />
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: 'var(--bg-card)',
+                                                            borderColor: 'var(--border)',
+                                                            color: 'var(--text-primary)',
+                                                            borderRadius: '0.5rem'
+                                                        }}
+                                                        itemStyle={{ color: 'var(--text-primary)' }}
+                                                        labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                                                    />
+                                                    <Legend />
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="count"
+                                                        stroke="#8884d8"
+                                                        name="New Users"
+                                                        strokeWidth={2}
+                                                        dot={false}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    <div className="card">
+                                        <h3 className="text-lg font-semibold mb-4">Post Activity</h3>
+                                        <div className="h-80 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={stats.postActivity}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        stroke="var(--text-secondary)"
+                                                        tickFormatter={(date) => {
+                                                            const d = new Date(date);
+                                                            return timeRange === '7d' || timeRange === '30d'
+                                                                ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+                                                                : d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+                                                        }}
+                                                    />
+                                                    <YAxis allowDecimals={false} stroke="var(--text-secondary)" />
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: 'var(--bg-card)',
+                                                            borderColor: 'var(--border)',
+                                                            color: 'var(--text-primary)',
+                                                            borderRadius: '0.5rem'
+                                                        }}
+                                                        itemStyle={{ color: 'var(--text-primary)' }}
+                                                        labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                                                    />
+                                                    <Legend />
+                                                    <Bar
+                                                        dataKey="count"
+                                                        fill="#4f46e5"
+                                                        name="New Posts"
+                                                    />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )

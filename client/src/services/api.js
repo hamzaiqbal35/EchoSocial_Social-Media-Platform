@@ -103,7 +103,8 @@ export const notificationAPI = {
 
 // Admin API
 export const adminAPI = {
-    getStats: () => api.get('/admin/stats'),
+    getStats: (range = '7d', startDate = null, endDate = null) =>
+        api.get(`/admin/stats?range=${range}&startDate=${startDate || ''}&endDate=${endDate || ''}`),
     getAllUsers: (page = 1, limit = 20, search = '', filter = 'all') =>
         api.get(`/admin/users?page=${page}&limit=${limit}&search=${search}&filter=${filter}`),
     banUser: (id, data) => api.put(`/admin/users/${id}/ban`, data),

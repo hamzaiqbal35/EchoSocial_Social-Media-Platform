@@ -10,11 +10,84 @@ exports.getStats = async (req, res) => {
         const pendingReports = await Report.countDocuments({ status: 'pending' });
         const bannedUsers = await User.countDocuments({ isActive: false });
 
+        // Get date range from query
+        const { range, startDate, endDate } = req.query;
+        let start = new Date();
+        let end = new Date();
+
+        if (range === 'custom' && startDate && endDate) {
+            start = new Date(startDate);
+            end = new Date(endDate);
+            // Set end date to end of day
+            end.setHours(23, 59, 59, 999);
+        } else {
+            // Default to 7d if invalid range
+            let days = 7;
+            switch (range) {
+                case '30d': days = 30; break;
+                case '90d': days = 90; break;
+                case '6m': days = 180; break;
+                case '1y': days = 365; break;
+                default: days = 7;
+            }
+            start.setDate(start.getDate() - days);
+        }
+
+        const userGrowth = await User.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: start, $lte: end }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const postActivity = await Post.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: start, $lte: end }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Fill in missing days with 0
+        const fillMissingDays = (data, start, end) => {
+            const result = [];
+            const current = new Date(start);
+            const last = new Date(end);
+
+            while (current <= last) {
+                const dateString = current.toISOString().split('T')[0];
+                const found = data.find(item => item._id === dateString);
+                result.push({
+                    date: dateString,
+                    count: found ? found.count : 0
+                });
+                current.setDate(current.getDate() + 1);
+            }
+            return result;
+        };
+
         res.json({
             totalUsers,
             totalPosts,
             pendingReports,
-            bannedUsers
+            bannedUsers,
+            userGrowth: fillMissingDays(userGrowth, start, end),
+            postActivity: fillMissingDays(postActivity, start, end)
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
