@@ -276,3 +276,4 @@ Built with ❤️ by the EchoSocial team
 - Tailwind CSS for the utility-first CSS framework
 - MongoDB for the flexible database
 - Express for the robust backend framework
+
