@@ -114,7 +114,10 @@ const Navbar = () => {
                                 to="/"
                                 end
                                 className={({ isActive }) =>
-                                    `btn btn-ghost btn-sm ${isActive ? 'text-primary border-b-2 border-primary rounded-b-none' : ''}`
+                                    `btn btn-sm transition-all duration-200 ${isActive
+                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-gradient-to-r from-primary to-primary/50'
+                                        : 'btn-ghost hover:bg-primary/5'
+                                    }`
                                 }
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +130,10 @@ const Navbar = () => {
                             <NavLink
                                 to="/people"
                                 className={({ isActive }) =>
-                                    `btn btn-ghost btn-sm ${isActive ? 'text-primary border-b-2 border-primary rounded-b-none' : ''}`
+                                    `btn btn-sm transition-all duration-200 ${isActive
+                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                        : 'btn-ghost hover:bg-primary/5'
+                                    }`
                                 }
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +146,10 @@ const Navbar = () => {
                             <NavLink
                                 to="/notifications"
                                 className={({ isActive }) =>
-                                    `btn btn-ghost btn-sm relative ${isActive ? 'text-primary border-b-2 border-primary rounded-b-none' : ''}`
+                                    `btn btn-sm relative transition-all duration-200 ${isActive
+                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                        : 'btn-ghost hover:bg-primary/5'
+                                    }`
                                 }
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +168,10 @@ const Navbar = () => {
                                 <NavLink
                                     to="/admin"
                                     className={({ isActive }) =>
-                                        `btn btn-ghost btn-sm ${isActive ? 'text-primary border-b-2 border-primary rounded-b-none' : ''}`
+                                        `btn btn-sm transition-all duration-200 ${isActive
+                                            ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                            : 'btn-ghost hover:bg-primary/5'
+                                        }`
                                     }
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
