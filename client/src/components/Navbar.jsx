@@ -131,7 +131,7 @@ const Navbar = () => {
                                 to="/people"
                                 className={({ isActive }) =>
                                     `btn btn-sm transition-all duration-200 ${isActive
-                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-gradient-to-r from-primary to-primary/50'
                                         : 'btn-ghost hover:bg-primary/5'
                                     }`
                                 }
@@ -147,7 +147,7 @@ const Navbar = () => {
                                 to="/notifications"
                                 className={({ isActive }) =>
                                     `btn btn-sm relative transition-all duration-200 ${isActive
-                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                        ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-gradient-to-r from-primary to-primary/50'
                                         : 'btn-ghost hover:bg-primary/5'
                                     }`
                                 }
@@ -169,7 +169,7 @@ const Navbar = () => {
                                     to="/admin"
                                     className={({ isActive }) =>
                                         `btn btn-sm transition-all duration-200 ${isActive
-                                            ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-primary/10'
+                                            ? 'text-primary !border-b-2 !border-primary rounded-b-none bg-gradient-to-r from-primary to-primary/50'
                                             : 'btn-ghost hover:bg-primary/5'
                                         }`
                                     }
