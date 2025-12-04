@@ -83,9 +83,20 @@ const Landing = () => {
             </main>
 
             {/* Footer */}
-            <footer className="relative z-10 py-8 text-center text-text-muted text-sm">
-                <div className="flex justify-center gap-6 mb-4">
-                    <Link to="/contact" className="hover:text-primary transition-colors">Contact Us</Link>
+            {/* Footer */}
+            <footer className="relative z-10 py-12 text-center text-text-muted text-sm bg-bg-primary/50 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-6 mb-8">
+                    <h2 className="text-2xl font-bold text-text-primary">Have questions?</h2>
+                    <Link to="/contact" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-bg-secondary border border-border hover:border-primary hover:text-primary hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 group">
+                        <span className="font-medium">Contact Support</span>
+                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </Link>
+                </div>
+                <div className="flex justify-center gap-6 mb-8">
+                    <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                    <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
                 </div>
                 <p>&copy; {new Date().getFullYear()} EchoSocial. All rights reserved.</p>
             </footer>
