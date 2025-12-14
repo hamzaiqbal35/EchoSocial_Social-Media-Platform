@@ -75,7 +75,7 @@ Follow these steps to set up the project locally.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/hamzaiqbal35/ApexcifyTechnologys_Social-Media-Platform.git
+git clone https://github.com/hamzaiqbal35/EchoSocial_Social-Media-Platform.git
 cd EchoSocial
 ```
 
