@@ -1,14 +1,16 @@
 const LoadingSpinner = ({ size = 'md', className = '' }) => {
     const sizeMap = {
-        sm: 'w-4 h-4',
-        md: 'w-8 h-8',
-        lg: 'w-12 h-12',
+        xs: 'w-3.5 h-3.5 border-[1.5px]',
+        sm: 'w-4 h-4 border-2',
+        md: 'w-6 h-6 border-2',
+        lg: 'w-8 h-8 border-2',
+        xl: 'w-10 h-10 border-[2.5px]',
     };
 
     return (
-        <div className={`flex items-center justify-center ${className}`}>
+        <div className={`flex items-center justify-center ${className}`} role="status" aria-label="Loading">
             <div
-                className={`${sizeMap[size]} border-4 border-primary border-t-transparent rounded-full animate-spin`}
+                className={`${sizeMap[size] || sizeMap.md} border-border border-t-text-primary rounded-full animate-spin`}
             ></div>
         </div>
     );

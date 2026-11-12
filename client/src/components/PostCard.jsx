@@ -8,6 +8,7 @@ import Modal from './Modal';
 import MediaViewer from './MediaViewer';
 import ShareModal from './ShareModal';
 import ReportModal from './ReportModal';
+import LoadingSpinner from './LoadingSpinner';
 
 const PostCard = ({ post: initialPost, onDelete }) => {
     const { user } = useAuth();
@@ -16,6 +17,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
+    const [submittingComment, setSubmittingComment] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showFullScreen, setShowFullScreen] = useState(false);
     const [selectedMedia, setSelectedMedia] = useState(null);
@@ -23,42 +25,52 @@ const PostCard = ({ post: initialPost, onDelete }) => {
     const [showOptionsMenu, setShowOptionsMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
 
-    // Refs to store video elements
     const videoRefs = useRef({});
+    const optionsRef = useRef(null);
 
+    // Pause offscreen videos
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (!entry.isIntersecting) {
                         const video = entry.target;
-                        if (!video.paused) {
+                        if (video && !video.paused) {
                             video.pause();
                         }
                     }
                 });
             },
-            { threshold: 0.5 } // Pause when less than 50% visible
+            { threshold: 0.5 }
         );
 
-        // Observe all video elements
         Object.values(videoRefs.current).forEach((video) => {
             if (video) observer.observe(video);
         });
 
-        return () => {
-            observer.disconnect();
-        };
+        return () => observer.disconnect();
     }, [post.media, post.mediaUrl]);
 
-    const isLiked = post.likes?.some(like =>
+    // Close options menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (optionsRef.current && !optionsRef.current.contains(e.target)) {
+                setShowOptionsMenu(false);
+            }
+        };
+        if (showOptionsMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showOptionsMenu]);
+
+    const isLiked = post.likes?.some((like) =>
         typeof like === 'string' ? like === user?._id : like._id === user?._id
     );
     const isOwner = post.author?._id === user?._id;
 
     const handleMediaClick = (url, type) => {
-        // Mute all videos when opening full screen to prevent double audio
-        Object.values(videoRefs.current).forEach(video => {
+        Object.values(videoRefs.current).forEach((video) => {
             if (video) video.muted = true;
         });
         setSelectedMedia({ url, type });
@@ -75,7 +87,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                 setPost(response.data);
             }
         } catch (error) {
-            console.error('Failed to like/unlike post:', error);
+            console.error('Failed to update post like:', error);
         }
     };
 
@@ -91,10 +103,6 @@ const PostCard = ({ post: initialPost, onDelete }) => {
         }
     };
 
-    const handleShare = () => {
-        setShowShareModal(true);
-    };
-
     const loadComments = async () => {
         if (comments.length > 0) {
             setShowComments(!showComments);
@@ -104,7 +112,7 @@ const PostCard = ({ post: initialPost, onDelete }) => {
         setLoadingComments(true);
         try {
             const response = await commentAPI.getPostComments(post._id);
-            setComments(response.data);
+            setComments(response.data || []);
             setShowComments(true);
         } catch (error) {
             console.error('Failed to load comments:', error);
@@ -115,21 +123,33 @@ const PostCard = ({ post: initialPost, onDelete }) => {
 
     const handleComment = async (e) => {
         e.preventDefault();
-        if (!commentText.trim()) return;
+        if (!commentText.trim() || submittingComment) return;
 
+        setSubmittingComment(true);
         try {
-            const response = await commentAPI.createComment(post._id, { content: commentText });
+            const response = await commentAPI.createComment(post._id, { content: commentText.trim() });
             setComments([response.data, ...comments]);
             setCommentText('');
+            // Update comments count in post
+            setPost((prev) => ({
+                ...prev,
+                comments: [...(prev.comments || []), response.data._id]
+            }));
         } catch (error) {
             console.error('Failed to create comment:', error);
+        } finally {
+            setSubmittingComment(false);
         }
     };
 
     const handleDeleteComment = async (commentId) => {
         try {
             await commentAPI.deleteComment(commentId);
-            setComments(comments.filter(c => c._id !== commentId));
+            setComments((prev) => prev.filter((c) => c._id !== commentId));
+            setPost((prev) => ({
+                ...prev,
+                comments: (prev.comments || []).filter((id) => id !== commentId)
+            }));
         } catch (error) {
             console.error('Failed to delete comment:', error);
         }
@@ -137,241 +157,312 @@ const PostCard = ({ post: initialPost, onDelete }) => {
 
     return (
         <>
-            <div className="card animate-fade-in">
+            <article className="card p-4 transition-all">
                 {/* Post Header */}
-                <div className="flex items-start justify-between mb-4">
-                    <Link to={`/profile/${post.author?._id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                        <Avatar src={post.author?.avatar} alt={post.author?.username} size="md" />
-                        <div>
-                            <h3 className="font-semibold">{post.author?.username}</h3>
-                            <p className="text-sm text-text-muted">{formatRelativeTime(post.createdAt)}</p>
+                <header className="flex items-start justify-between mb-3">
+                    <Link
+                        to={`/profile/${post.author?._id}`}
+                        className="flex items-center gap-3 group min-w-0"
+                    >
+                        <Avatar src={post.author?.avatar} alt={post.author?.username} size="sm" />
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold text-text-primary group-hover:underline truncate">
+                                    {post.author?.username}
+                                </span>
+                            </div>
+                            <span className="text-[11px] text-text-muted">
+                                {formatRelativeTime(post.createdAt)}
+                            </span>
                         </div>
                     </Link>
 
-                    {isOwner && (
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                                className="text-text-muted hover:text-error transition-colors"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                            </button>
+                    {/* Post Options Menu */}
+                    <div className="relative" ref={optionsRef}>
+                        <button
+                            onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                            className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                            aria-label="Post options"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                        </button>
 
-                            {showOptionsMenu && (
-                                <div className="absolute right-0 mt-2 w-40 bg-bg-primary border border-border rounded-lg shadow-lg z-10">
+                        {showOptionsMenu && (
+                            <div className="absolute right-0 mt-1 w-36 card p-1 shadow-elevated z-20 border border-border animate-slide-down">
+                                {isOwner ? (
                                     <button
                                         onClick={() => {
                                             setShowDeleteModal(true);
                                             setShowOptionsMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-bg-secondary transition-colors flex items-center gap-3 text-error"
+                                        className="w-full text-left px-2.5 py-1.5 rounded text-xs font-medium text-error hover:bg-error/10 transition-colors flex items-center gap-2"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
                                         Delete Post
                                     </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {!isOwner && (
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                                className="text-text-muted hover:text-primary transition-colors"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                            </button>
-
-                            {showOptionsMenu && (
-                                <div className="absolute right-0 mt-2 w-40 bg-bg-primary border border-border rounded-lg shadow-lg z-10">
+                                ) : (
                                     <button
                                         onClick={() => {
                                             setShowReportModal(true);
                                             setShowOptionsMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-bg-secondary transition-colors flex items-center gap-3 text-error"
+                                        className="w-full text-left px-2.5 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-error hover:bg-error/10 transition-colors flex items-center gap-2"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
                                         Report Post
                                     </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </header>
 
                 {/* Post Content */}
-                <p className="mb-4 whitespace-pre-wrap">{post.content}</p>
+                {post.content && (
+                    <p className="text-xs sm:text-sm text-text-primary whitespace-pre-wrap leading-relaxed mb-3">
+                        {post.content}
+                    </p>
+                )}
 
-                {/* Post Media */}
+                {/* Post Media Display */}
                 {post.media && post.media.length > 0 ? (
-                    <div className={`mb-4 ${post.media.length > 1 ? 'grid grid-cols-2 gap-1' : ''}`}>
+                    <div
+                        className={`mb-3.5 rounded-lg overflow-hidden border border-border bg-bg-tertiary ${
+                            post.media.length === 1
+                                ? 'max-h-[500px]'
+                                : post.media.length === 2
+                                ? 'grid grid-cols-2 gap-0.5'
+                                : 'grid grid-cols-2 gap-0.5'
+                        }`}
+                    >
                         {post.media.map((item, index) => (
                             <div
                                 key={index}
-                                className={`cursor-pointer relative ${post.media.length === 3 && index === 0 ? 'col-span-2' : ''}`}
+                                className={`relative cursor-pointer overflow-hidden bg-bg-secondary ${
+                                    post.media.length === 3 && index === 0 ? 'col-span-2' : ''
+                                }`}
                                 onClick={() => handleMediaClick(item.url, item.type)}
                             >
                                 {item.type === 'video' ? (
-                                    <video
-                                        ref={el => videoRefs.current[`${post._id}-${index}`] = el}
-                                        src={getImageUrl(item.url)}
-                                        className="w-full h-64 object-cover rounded-lg"
-                                        controls
-                                    />
+                                    <div className="relative aspect-video">
+                                        <video
+                                            ref={(el) => (videoRefs.current[`${post._id}-${index}`] = el)}
+                                            src={getImageUrl(item.url)}
+                                            className="w-full h-full object-cover"
+                                            controls
+                                        />
+                                    </div>
                                 ) : (
                                     <img
                                         src={getImageUrl(item.url)}
-                                        alt={`Post media ${index + 1}`}
-                                        className="w-full h-64 object-cover rounded-lg"
+                                        alt={`Post attachment ${index + 1}`}
+                                        className="w-full max-h-[460px] object-cover hover:scale-[1.01] transition-transform duration-200"
+                                        loading="lazy"
                                     />
                                 )}
                             </div>
                         ))}
                     </div>
                 ) : post.mediaUrl ? (
-                    <div className="mb-4 cursor-pointer" onClick={() => handleMediaClick(post.mediaUrl, post.mediaType)}>
+                    <div
+                        className="mb-3.5 rounded-lg overflow-hidden border border-border cursor-pointer bg-bg-tertiary"
+                        onClick={() => handleMediaClick(post.mediaUrl, post.mediaType)}
+                    >
                         {post.mediaType === 'video' ? (
                             <video
-                                ref={el => videoRefs.current[`${post._id}-legacy`] = el}
+                                ref={(el) => (videoRefs.current[`${post._id}-legacy`] = el)}
                                 src={getImageUrl(post.mediaUrl)}
-                                className="w-full rounded-lg max-h-96 object-cover"
+                                className="w-full max-h-[460px] object-cover"
                                 controls
                             />
                         ) : (
                             <img
                                 src={getImageUrl(post.mediaUrl)}
-                                alt="Post"
-                                className="w-full rounded-lg max-h-96 object-cover"
+                                alt="Post media"
+                                className="w-full max-h-[460px] object-cover hover:scale-[1.01] transition-transform duration-200"
+                                loading="lazy"
                             />
                         )}
                     </div>
-                ) : post.image && (
-                    <div className="mb-4 cursor-pointer" onClick={() => handleMediaClick(post.image, 'image')}>
+                ) : post.image ? (
+                    <div
+                        className="mb-3.5 rounded-lg overflow-hidden border border-border cursor-pointer bg-bg-tertiary"
+                        onClick={() => handleMediaClick(post.image, 'image')}
+                    >
                         <img
                             src={getImageUrl(post.image)}
-                            alt="Post"
-                            className="w-full rounded-lg max-h-96 object-cover"
+                            alt="Post media"
+                            className="w-full max-h-[460px] object-cover hover:scale-[1.01] transition-transform duration-200"
+                            loading="lazy"
                         />
                     </div>
-                )}
+                ) : null}
 
-                {/* Post Stats */}
-                <div className="flex items-center gap-4 mb-4 text-sm text-text-muted">
-                    <span>{post.likes?.length || 0} likes</span>
-                </div>
-
-                {/* Post Actions */}
-                <div className="flex items-center gap-2 pt-4 border-t border-border">
-                    <button
-                        onClick={handleLike}
-                        className={`btn btn-ghost flex-1 ${isLiked ? 'text-error' : ''}`}
-                    >
-                        <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        Like
-                    </button>
-
+                {/* Numeric Stats Strip */}
+                <div className="flex items-center gap-4 text-[11px] text-text-muted mb-2.5 pb-2.5 border-b border-border">
+                    <span className="tabular-nums font-medium text-text-secondary">
+                        {post.likes?.length || 0} {post.likes?.length === 1 ? 'like' : 'likes'}
+                    </span>
+                    <span>•</span>
                     <button
                         onClick={loadComments}
-                        className="btn btn-ghost flex-1"
-                        disabled={loadingComments}
+                        className="tabular-nums font-medium hover:text-text-primary transition-colors"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        Comment
-                    </button>
-
-                    <button
-                        onClick={handleShare}
-                        className="btn btn-ghost flex-1"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                        </svg>
-                        Share
+                        {comments.length || post.comments?.length || 0} {comments.length === 1 ? 'comment' : 'comments'}
                     </button>
                 </div>
 
-                {/* Comments Section */}
+                {/* Tactile Action Buttons */}
+                <div className="flex items-center justify-between text-xs text-text-secondary pt-0.5">
+                    {/* Like Button */}
+                    <button
+                        onClick={handleLike}
+                        className={`flex-1 py-1.5 rounded-md flex items-center justify-center gap-1.5 font-medium transition-colors hover:bg-bg-tertiary ${
+                            isLiked ? 'text-red-500' : 'hover:text-text-primary'
+                        }`}
+                        title={isLiked ? 'Unlike' : 'Like'}
+                    >
+                        <svg
+                            className={`w-4 h-4 transition-transform active:scale-125 ${isLiked ? 'fill-current' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span>Like</span>
+                    </button>
+
+                    {/* Comment Button */}
+                    <button
+                        onClick={loadComments}
+                        className="flex-1 py-1.5 rounded-md flex items-center justify-center gap-1.5 font-medium hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>Comment</span>
+                    </button>
+
+                    {/* Share Button */}
+                    <button
+                        onClick={() => setShowShareModal(true)}
+                        className="flex-1 py-1.5 rounded-md flex items-center justify-center gap-1.5 font-medium hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span>Share</span>
+                    </button>
+                </div>
+
+                {/* Comments Section Drawer */}
                 {showComments && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                        {/* Comment Form */}
-                        <form onSubmit={handleComment} className="flex gap-2 mb-4">
+                    <div className="mt-3 pt-3 border-t border-border animate-fade-in">
+                        {/* Inline Comment Composer */}
+                        <form onSubmit={handleComment} className="flex gap-2 mb-3">
                             <input
                                 type="text"
-                                className="input flex-1"
-                                placeholder="Write a comment..."
+                                className="input text-xs py-1.5 flex-1"
+                                placeholder="Add a comment..."
                                 value={commentText}
                                 onChange={(e) => setCommentText(e.target.value)}
                                 maxLength={300}
+                                disabled={submittingComment}
                             />
-                            <button type="submit" className="btn btn-primary" disabled={!commentText.trim()}>
-                                Post
+                            <button
+                                type="submit"
+                                className="btn btn-primary btn-sm px-3"
+                                disabled={!commentText.trim() || submittingComment}
+                            >
+                                {submittingComment ? <LoadingSpinner size="xs" /> : 'Post'}
                             </button>
                         </form>
 
                         {/* Comments List */}
-                        <div className="space-y-3">
-                            {comments.map((comment) => (
-                                <div key={comment._id} className="flex gap-3">
-                                    <Link to={`/profile/${comment.author?._id}`}>
-                                        <Avatar src={comment.author?.avatar} alt={comment.author?.username} size="sm" />
-                                    </Link>
-                                    <div className="flex-1">
-                                        <div className="bg-bg-secondary rounded-lg p-3">
-                                            <Link to={`/profile/${comment.author?._id}`} className="font-semibold text-sm hover:underline">
-                                                {comment.author?.username}
-                                            </Link>
-                                            <p className="text-sm mt-1">{comment.content}</p>
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-1 px-3">
-                                            <span className="text-xs text-text-muted">{formatRelativeTime(comment.createdAt)}</span>
+                        {loadingComments ? (
+                            <div className="py-4 text-center">
+                                <LoadingSpinner size="sm" />
+                            </div>
+                        ) : comments.length === 0 ? (
+                            <div className="py-4 text-center text-xs text-text-muted">
+                                No comments yet. Be the first to share your thoughts.
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                                {comments.map((comment) => (
+                                    <div key={comment._id} className="flex gap-2.5 text-xs">
+                                        <Link to={`/profile/${comment.author?._id}`}>
+                                            <Avatar src={comment.author?.avatar} alt={comment.author?.username} size="xs" />
+                                        </Link>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="bg-bg-tertiary rounded-lg p-2.5 border border-border">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <Link
+                                                        to={`/profile/${comment.author?._id}`}
+                                                        className="font-semibold text-text-primary hover:underline truncate"
+                                                    >
+                                                        {comment.author?.username}
+                                                    </Link>
+                                                    <span className="text-[10px] text-text-muted">
+                                                        {formatRelativeTime(comment.createdAt)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-text-secondary leading-relaxed break-words">
+                                                    {comment.content}
+                                                </p>
+                                            </div>
                                             {comment.author?._id === user?._id && (
                                                 <button
                                                     onClick={() => handleDeleteComment(comment._id)}
-                                                    className="text-xs text-text-muted hover:text-error"
+                                                    className="text-[10px] text-text-muted hover:text-error mt-1 px-1 transition-colors"
                                                 >
                                                     Delete
                                                 </button>
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
-            </div>
+            </article>
 
-            {/* Delete Confirmation Modal */}
+            {/* Delete Modal */}
             <Modal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
                 title="Delete Post"
             >
-                <p className="mb-6">Are you sure you want to delete this post? This action cannot be undone.</p>
-                <div className="flex gap-3 justify-end">
-                    <button onClick={() => setShowDeleteModal(false)} className="btn btn-secondary">
-                        Cancel
-                    </button>
-                    <button onClick={handleDelete} className="btn btn-primary bg-error hover:bg-error">
-                        Delete
-                    </button>
+                <div className="space-y-4">
+                    <p className="text-xs sm:text-sm text-text-secondary">
+                        Are you sure you want to permanently delete this post? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button
+                            onClick={() => setShowDeleteModal(false)}
+                            className="btn btn-secondary btn-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="btn btn-destructive btn-sm"
+                        >
+                            Delete
+                        </button>
+                    </div>
                 </div>
             </Modal>
-            {/* Full Screen Media Viewer */}
+
+            {/* Media Lightbox Viewer */}
             <MediaViewer
                 isOpen={showFullScreen}
                 onClose={() => setShowFullScreen(false)}
@@ -379,14 +470,14 @@ const PostCard = ({ post: initialPost, onDelete }) => {
                 mediaType={selectedMedia ? selectedMedia.type : 'image'}
             />
 
-            {/* Share Modal */}
+            {/* Share Dialog */}
             <ShareModal
                 isOpen={showShareModal}
                 onClose={() => setShowShareModal(false)}
                 post={post}
             />
 
-            {/* Report Modal */}
+            {/* Report Dialog */}
             <ReportModal
                 isOpen={showReportModal}
                 onClose={() => setShowReportModal(false)}

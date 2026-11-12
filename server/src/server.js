@@ -12,8 +12,8 @@ connectDB();
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 EchoSocial server running on port ${PORT}`);
-    console.log(`📡 API available at http://localhost:${PORT}/api`);
+    console.log(`[EchoSocial] Server running on port ${PORT}`);
+    console.log(`[EchoSocial] API available at http://localhost:${PORT}/api`);
 
     // Initial check
     checkExpiredReports();

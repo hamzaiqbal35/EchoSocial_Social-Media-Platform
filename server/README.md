@@ -2,7 +2,7 @@
 
 The backend for the ApexcifyTechnologys Social Media Platform is built with Node.js, Express, and MongoDB.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Node.js**
 - **Express 5**
@@ -10,7 +10,7 @@ The backend for the ApexcifyTechnologys Social Media Platform is built with Node
 - **JWT** Authentication
 - **Multer** for file uploads
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -38,13 +38,13 @@ The backend for the ApexcifyTechnologys Social Media Platform is built with Node
    npm run dev
    ```
 
-## 📜 Available Scripts
+## Available Scripts
 
 - `npm start`: Runs the server in production mode.
 - `npm run dev`: Runs the server in development mode with nodemon.
 - `npm run seed:admin`: Seeds the database with an initial admin account.
 
-## 🌐 API Endpoints Overview
+## API Endpoints Overview
 
 The API is structured around the following resources:
 

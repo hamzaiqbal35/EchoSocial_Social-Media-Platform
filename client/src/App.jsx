@@ -19,6 +19,7 @@ import ResetPassword from './pages/ResetPassword';
 import Contact from './pages/Contact';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import CommunityStandards from './pages/CommunityStandards';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/standards" element={<CommunityStandards />} />
 
               {/* Protected Routes */}
               <Route

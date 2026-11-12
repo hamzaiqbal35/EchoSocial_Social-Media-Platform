@@ -6,9 +6,9 @@ const User = require('./src/models/User');
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI);
-        console.log('✅ MongoDB connected');
+        console.log('[EchoSocial] MongoDB connected');
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
+        console.error('[EchoSocial] MongoDB connection error:', error);
         process.exit(1);
     }
 };
@@ -19,10 +19,10 @@ const createAdminUser = async () => {
         const existingAdmin = await User.findOne({ email: 'admin@echosocial.com' });
 
         if (existingAdmin) {
-            console.log('ℹ️  Admin user already exists');
-            console.log('📧 Email:', existingAdmin.email);
-            console.log('👤 Username:', existingAdmin.username);
-            console.log('🔑 Password: admin123');
+            console.log('[EchoSocial] Admin user already exists');
+            console.log('Email:', existingAdmin.email);
+            console.log('Username:', existingAdmin.username);
+            console.log('Password: admin123');
             return;
         }
 
@@ -36,21 +36,21 @@ const createAdminUser = async () => {
             isActive: true
         });
 
-        console.log('✅ Admin user created successfully!');
+        console.log('[EchoSocial] Admin user created successfully');
         console.log('');
-        console.log('═══════════════════════════════════════');
-        console.log('📋 ADMIN CREDENTIALS');
-        console.log('═══════════════════════════════════════');
-        console.log('📧 Email:    admin@echosocial.com');
-        console.log('👤 Username: admin');
-        console.log('🔑 Password: admin123');
-        console.log('═══════════════════════════════════════');
+        console.log('=======================================');
+        console.log('ADMIN CREDENTIALS');
+        console.log('=======================================');
+        console.log('Email:    admin@echosocial.com');
+        console.log('Username: admin');
+        console.log('Password: admin123');
+        console.log('=======================================');
         console.log('');
-        console.log('⚠️  IMPORTANT: Change the password after first login!');
+        console.log('NOTICE: Change the password after first login.');
         console.log('');
 
     } catch (error) {
-        console.error('❌ Error creating admin user:', error);
+        console.error('[EchoSocial] Error creating admin user:', error);
     }
 };
 
@@ -58,7 +58,7 @@ const run = async () => {
     await connectDB();
     await createAdminUser();
     await mongoose.connection.close();
-    console.log('✅ Database connection closed');
+    console.log('[EchoSocial] Database connection closed');
     process.exit(0);
 };
 
